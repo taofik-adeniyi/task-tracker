@@ -177,6 +177,8 @@ func createFileIfNotExist() (*os.File, error) {
 }
 func addTask() {
 	fmt.Println("Add Task ")
+	fmt.Println("e.g: task-tracker add 'Buy groceries'")
+	// task-cli add "Buy groceries"
 
 	args := os.Args
 	argsLen := len(args)
@@ -249,9 +251,55 @@ func addTask() {
 }
 func updateTask() {
 	fmt.Println("Update Task")
+	fmt.Println("e.g: task-tracker update 1 'Buy groceries and cook dinner'")
+	args := os.Args
+	if len(args) != 4 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker update 1 'description to update to')")
+		return
+	}
+
+	taskId := args[2]
+	taskDescription := args[3]
+	taskIdInt, err := strconv.Atoi(taskId)
+	if err != nil {
+		fmt.Println("Error converting string to int", err.Error())
+		return
+	}
+	var fileContent DefaultFileStruct
+	fsys := os.DirFS(".")
+	content, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		fmt.Println("err reading file", err.Error())
+		return
+	}
+	err = json.Unmarshal(content, &fileContent)
+	if err != nil {
+		fmt.Println("error turning bytes into struct", err.Error())
+		return
+	}
+
+	for i, _ := range fileContent.Tasks {
+		if fileContent.Tasks[i].Id == taskIdInt {
+			fileContent.Tasks[i].Description = taskDescription
+			fileContent.Tasks[i].UpdatedAt = time.Now()
+		}
+	}
+	fmt.Println("file contents", fileContent)
+
+	conte, err := json.Marshal(fileContent)
+	if err != nil {
+		fmt.Println("err converting struct to bytes", err.Error())
+		return
+	}
+	err = os.WriteFile(filePath, conte, 0644)
+	if err != nil {
+		fmt.Println("Error writing to file", err.Error())
+	}
 }
 func deleteTask() {
 	// task-cli delete 1
+	fmt.Println("e.g: task-tracker delete 1")
 	fmt.Println("deleting task func")
 	args := os.Args
 	argsLen := len(args)
