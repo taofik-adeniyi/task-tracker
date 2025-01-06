@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -250,6 +251,64 @@ func updateTask() {
 	fmt.Println("Update Task")
 }
 func deleteTask() {
+	// task-cli delete 1
+	fmt.Println("deleting task func")
+	args := os.Args
+	argsLen := len(args)
+	if argsLen != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker delete 1)")
+		return
+	}
+
+	// command := args[1]
+	taskId := args[2]
+
+	taskIdInt, err := strconv.Atoi(taskId)
+	if err != nil {
+		fmt.Println("Invalid task ID: must be a number")
+		return
+	}
+
+	fsfs := os.DirFS(".")
+	// file, err := os.Open(filePath)
+	content, err := fs.ReadFile(fsfs, filePath)
+	if err != nil {
+		fmt.Println("Unable to read file")
+		return
+	}
+	var fileContent DefaultFileStruct
+	err = json.Unmarshal(content, &fileContent)
+	if err != nil {
+		fmt.Println("Unable to parse the file content to struct", err.Error())
+		return
+	}
+
+	var newFileContent DefaultFileStruct
+	for _, value := range fileContent.Tasks {
+		if value.Id == taskIdInt {
+			continue
+		} else {
+			newFileContent.Tasks = append(newFileContent.Tasks, value)
+		}
+	}
+	fmt.Println("newFileContent", newFileContent)
+
+	contentToSave, err := json.Marshal(newFileContent)
+	if err != nil {
+		fmt.Printf("Unable to marshall the struct %v \n, err: %v", newFileContent, err.Error())
+	}
+
+	err = os.WriteFile(filePath, contentToSave, 0644)
+	if err != nil {
+		fmt.Printf("unable to save file into %v, err: %v\n", filePath, err.Error())
+		return
+	}
+	// if command == "" || taskId == "" {
+	// 	fmt.Println("invalid command or no taskId")
+	// 	return
+	// }
+
 	fmt.Println("Delete tasks")
 }
 func listTasks() {
