@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ const (
 	Todo       TaskStatus = "todo"
 	Done       TaskStatus = "done"
 	InProgress TaskStatus = "in-progress"
+	filePath   string     = "tasks.json"
 )
 
 // ValidateTaskStatus checks if a TaskStatus is valid
@@ -26,14 +29,38 @@ func ValidateTaskStatus(status TaskStatus) error {
 	}
 }
 
-var commands = [9]string{"add", "update", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
+var commands = []string{"add", "update", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
+
+// Define a map of commands to their corresponding functions
+var commandMap = map[string]func(){
+	"add":              addTask,
+	"update":           updateTask,
+	"delete":           deleteTask,
+	"mark-in-progress": markTaskInProgress,
+	"mark-done":        markTaskDone,
+	"list":             listTasks,
+	"list done":        listDoneTasks,
+	"list in-progress": listInprogressTasks,
+	"list todo":        listTodoTasks,
+	"-V":               checkVersion,
+	"--version":        checkVersion,
+}
 
 type Task struct {
-	Id          string
-	Description string
-	Status      TaskStatus
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Id          int        `json:"id"`
+	Description string     `json:"description"`
+	Status      TaskStatus `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+func (t Task) taskInfo() {
+	// fmt.Print
+	fmt.Printf("%#v\n", t)
+}
+
+func checkVersion() {
+	println("v0.0.1")
 }
 
 func main() {
@@ -50,32 +77,168 @@ func main() {
 }
 
 func commandCheck(command string) {
-	switch command {
-	case "add":
+
+	// fn, exists := commandMap[command]
+	// if exists {
+	// 	fn()
+	// } else {
+	// 	help()
+	// }
+
+	if strings.Contains(command, "add") {
 		addTask()
-	case "update":
+	} else if strings.Contains(command, "update") {
 		updateTask()
-	case "delete":
+	} else if strings.Contains(command, "delete") {
 		deleteTask()
-	case "mark-in-progress":
-		markTask()
-	case "mark-done":
-		markTask()
-	case "list":
+	} else if strings.Contains(command, "mark-in-progress") {
+		markTaskInProgress()
+	} else if strings.Contains(command, "mark-done") {
+		markTaskDone()
+	} else if strings.Contains(command, "list") {
 		listTasks()
-	case "list done":
+	} else if strings.Contains(command, "list done") {
 		listDoneTasks()
-	case "list in-progress":
-		listInprogressTasks()
-	case "list todo":
+	} else if strings.Contains(command, "list todo") {
 		listTodoTasks()
-	default:
+	} else if strings.Contains(command, "list in-progress") {
+		listInprogressTasks()
+	} else {
 		help()
 	}
 }
 
+func checkIfJsonFileExists() (*os.File, error) {
+	osFile, err := os.Open(filePath)
+
+	if err != nil {
+		fmt.Printf("the file path is not available %s \n", err)
+		return nil, err
+	} else {
+		defer osFile.Close()
+		return osFile, nil
+	}
+}
+func createFile() (*os.File, error) {
+	osFile, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	} else {
+		defer osFile.Close()
+		return osFile, nil
+	}
+}
+
+type DefaultFileStruct struct {
+	Tasks []Task `json:"tasks"`
+}
+
+func createFileIfNotExist() (*os.File, error) {
+	osFile, err := os.Open(filePath)
+
+	if err != nil {
+		fmt.Printf("the file path is not available %s \n", err)
+		createdFile, err := os.Create(filePath)
+		if err != nil {
+			fmt.Printf("Error creating file [%v] that does not exist error is %v \n", filePath, err)
+			return nil, err
+		}
+		defer createdFile.Close()
+
+		osFile = createdFile
+		fmt.Println("Name of created file", createdFile.Name())
+
+		encoder := json.NewEncoder(osFile)
+		if err := encoder.Encode(DefaultFileStruct{Tasks: []Task{{
+			Id:          1,
+			Description: "description",
+			Status:      Todo,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}}}); err != nil {
+			fmt.Printf("Error writing task to file: %v\n", err)
+			return nil, err
+		}
+		fmt.Println("Task written to file successfully")
+
+	} else {
+		defer osFile.Close()
+		fmt.Println("Name of default file", osFile.Name())
+		return osFile, nil
+	}
+	return osFile, nil
+}
 func addTask() {
 	fmt.Println("Add Task ")
+
+	args := os.Args
+	argsLen := len(args)
+	if argsLen != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker add 'task one')")
+		return
+	}
+	taskDescription := args[2]
+	fmt.Println("task description", taskDescription)
+	//  checkIfJsonFileExists()
+	// createFile()
+	file, err := createFileIfNotExist()
+	if err != nil {
+		fmt.Println("err check", err.Error())
+		return
+	}
+	fmt.Println("check return file name", file.Name())
+
+	fsys := os.DirFS(".")
+
+	reader, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		// if err = io.EOF {
+		// 	fmt.Println("End of file",err.Error())
+		// 	continue
+		// }
+		fmt.Println("error reading file", err.Error())
+		return
+	}
+	var fileContent DefaultFileStruct
+	// fmt.Println("file content from reader", reader)
+	fmt.Println("file content from reader", string(reader))
+	err = json.Unmarshal(reader, &fileContent)
+	if err != nil {
+		fmt.Println("error converting reader file to the default struct", err.Error())
+	}
+	fmt.Println("before file content struct", fileContent)
+	newTask := Task{
+		Id:          len(fileContent.Tasks) + 1,
+		Description: taskDescription,
+		Status:      Todo,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	// newTask.taskInfo()
+	fileContent.Tasks = append(fileContent.Tasks, newTask)
+	defaultTask := fileContent.Tasks[0]
+	addedTask := fileContent.Tasks[1]
+	fmt.Println("after file content struct>>")
+	defaultTask.taskInfo()
+	addedTask.taskInfo()
+
+	jsonData, err := json.Marshal(fileContent)
+	if err != nil {
+		fmt.Println("Error marshaling struct to JSON:", err)
+		return
+	}
+	// Print the JSON byte slice
+	fmt.Println("JSON data:", string(jsonData))
+	err = os.WriteFile(filePath, jsonData, 0644)
+
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	fmt.Println("Struct saved to file as JSON successfully!")
+
 }
 func updateTask() {
 	fmt.Println("Update Task")
@@ -84,7 +247,10 @@ func deleteTask() {
 	fmt.Println("Delete tasks")
 }
 func listTasks() {}
-func markTask() {
+func markTaskInProgress() {
+	fmt.Println("Mark a task as in-progress or done")
+}
+func markTaskDone() {
 	fmt.Println("Mark a task as in-progress or done")
 }
 func listDoneTasks() {

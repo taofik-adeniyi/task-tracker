@@ -1,0 +1,18 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "description": "description",
+      "status": "todo",
+      "created_at": "2025-01-06T10:27:26.803187+01:00",
+      "updated_at": "2025-01-06T10:27:26.803187+01:00"
+    },
+    {
+      "id": 2,
+      "description": "task 1",
+      "status": "todo",
+      "created_at": "2025-01-06T12:44:03.023557+01:00",
+      "updated_at": "2025-01-06T12:44:03.023557+01:00"
+    }
+  ]
+}
