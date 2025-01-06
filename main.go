@@ -56,7 +56,13 @@ type Task struct {
 
 func (t Task) taskInfo() {
 	// fmt.Print
-	fmt.Printf("%#v\n", t)
+	// fmt.Printf("%#v\n", t)
+
+	fmt.Printf("Task ID: %v \n", t.Id)
+	fmt.Printf("Task Description: %v \n", t.Description)
+	fmt.Printf("Task Status: %v \n", t.Status)
+	fmt.Printf("Task Created on: %v \n", t.CreatedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("Task Updated on: %v \n", t.CreatedAt.Format("2006-01-02 15:04:05"))
 }
 
 func checkVersion() {
@@ -72,7 +78,7 @@ func main() {
 	}
 	commandsLists := res[1:]
 	command := strings.Join(commandsLists, " ")
-	fmt.Println("the command passed is: ", command)
+	// fmt.Println("the command passed is: ", command)
 	commandCheck(command)
 }
 
@@ -193,9 +199,9 @@ func addTask() {
 
 	reader, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
-		// if err = io.EOF {
-		// 	fmt.Println("End of file",err.Error())
-		// 	continue
+		// if err == io.EOF {
+		// 	fmt.Println("End of file", err.Error())
+		// 	return
 		// }
 		fmt.Println("error reading file", err.Error())
 		return
@@ -246,7 +252,36 @@ func updateTask() {
 func deleteTask() {
 	fmt.Println("Delete tasks")
 }
-func listTasks() {}
+func listTasks() {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file", err.Error())
+		return
+	}
+	defer file.Close()
+
+	fsys := os.DirFS(".")
+	var tasks DefaultFileStruct
+	bytes, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		fmt.Printf("Error reading file: %v, error %v \n", filePath, err)
+	}
+	// fmt.Println(string(bytes))
+	err = json.Unmarshal(bytes, &tasks)
+	if err != nil {
+		fmt.Println("err converting bytes to struct", err.Error())
+	}
+
+	fmt.Println("List of tasks")
+	fmt.Println("")
+	for key, value := range tasks.Tasks {
+		fmt.Printf("Task %v \n", key+1)
+		value.taskInfo()
+		fmt.Println("")
+		fmt.Println("#######################")
+		fmt.Println("")
+	}
+}
 func markTaskInProgress() {
 	fmt.Println("Mark a task as in-progress or done")
 }
