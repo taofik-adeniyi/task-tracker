@@ -6,6 +6,20 @@
       "status": "todo",
       "created_at": "2025-01-06T12:44:03.023557+01:00",
       "updated_at": "2025-01-06T17:37:44.419459+01:00"
+    },
+    {
+      "id": 3,
+      "description": "buy groceries and cook dinner",
+      "status": "done",
+      "created_at": "2025-01-06T12:44:03.023557+01:00",
+      "updated_at": "2025-01-06T17:37:44.419459+01:00"
+    },
+    {
+      "id": 4,
+      "description": "buy groceries and cook dinner",
+      "status": "done",
+      "created_at": "2025-01-06T12:44:03.023557+01:00",
+      "updated_at": "2025-01-06T17:37:44.419459+01:00"
     }
   ]
 }

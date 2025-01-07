@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -79,7 +80,7 @@ func main() {
 	}
 	commandsLists := res[1:]
 	command := strings.Join(commandsLists, " ")
-	// fmt.Println("the command passed is: ", command)
+	fmt.Println("the command passed is: ", command)
 	commandCheck(command)
 }
 
@@ -102,14 +103,15 @@ func commandCheck(command string) {
 		markTaskInProgress()
 	} else if strings.Contains(command, "mark-done") {
 		markTaskDone()
-	} else if strings.Contains(command, "list") {
-		listTasks()
 	} else if strings.Contains(command, "list done") {
 		listDoneTasks()
 	} else if strings.Contains(command, "list todo") {
 		listTodoTasks()
 	} else if strings.Contains(command, "list in-progress") {
 		listInprogressTasks()
+	} else if strings.Contains(command, "list") {
+		fmt.Println("it contains", command)
+		listTasks()
 	} else {
 		help()
 	}
@@ -396,7 +398,44 @@ func markTaskDone() {
 	fmt.Println("Mark a task as in-progress or done")
 }
 func listDoneTasks() {
-	fmt.Println("list task marked as done")
+	args := os.Args
+
+	if len(args) != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (list done)")
+		return
+	}
+	fmt.Println("list all task marked as done")
+
+	var tasksJson DefaultFileStruct
+	fmt.Println(tasksJson)
+	// allTasks Defa
+
+	fsys := os.DirFS(".")
+	content, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	// fmt.Println(content)
+	// fmt.Println("after fatal")
+
+	err = json.Unmarshal(content, &tasksJson)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	var doneTasks []Task
+	for _, value := range tasksJson.Tasks {
+		if value.Status == Done {
+			doneTasks = append(doneTasks, value)
+		}
+	}
+	fmt.Printf("List of all %v tasks:\n", Todo)
+	for _, value := range doneTasks {
+		value.taskInfo()
+		fmt.Println("____________")
+	}
 }
 func listTodoTasks() {
 	fmt.Println("list all tasks marked as todo")
