@@ -19,6 +19,7 @@ const (
 	Done       TaskStatus = "done"
 	InProgress TaskStatus = "in-progress"
 	filePath   string     = "tasks.json"
+	Version    string     = "0.0.1"
 )
 
 // ValidateTaskStatus checks if a TaskStatus is valid
@@ -31,10 +32,54 @@ func ValidateTaskStatus(status TaskStatus) error {
 	}
 }
 
-var commands = []string{"add", "update", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
+type Commands struct {
+	Command     string
+	Description string
+}
+
+var commands = []string{"add 'task'", "update", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
+var commandsDescription []string = []string{"add {{task description e.g 'Buy groceries'}}", "update {{ id, description  e.g 1, 'Buy groceries and cook dinner'}}", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
+var comamndsList []Commands = []Commands{
+	{
+		Command:     "add",
+		Description: "add {{task description e.g 'Buy groceries'}}",
+	},
+	{
+		Command:     "update",
+		Description: "update id description  e.g update 1 'Buy groceries and cook dinner'",
+	},
+	{
+		Command:     "delete",
+		Description: "delete id e.g delete 1",
+	},
+	{
+		Command:     "mark-in-progress",
+		Description: "mark-in-progress id e.g mark-in-progress 1",
+	},
+	{
+		Command:     "mark-done",
+		Description: "mark-done id e.g mark-done 1",
+	},
+	{
+		Command:     "list",
+		Description: "list",
+	},
+	{
+		Command:     "list done",
+		Description: "list done",
+	},
+	{
+		Command:     "list todo",
+		Description: "list todo",
+	},
+	{
+		Command:     "list in-progress",
+		Description: "list in-progress",
+	},
+}
 
 // Define a map of commands to their corresponding functions
-var commandMap = map[string]func(){
+var commandMap map[string]func() = map[string]func(){
 	"add":              addTask,
 	"update":           updateTask,
 	"delete":           deleteTask,
@@ -68,7 +113,7 @@ func (t Task) taskInfo() {
 }
 
 func checkVersion() {
-	println("v0.0.1")
+	fmt.Println(Version)
 }
 
 func main() {
@@ -394,9 +439,90 @@ func listTasks() {
 }
 func markTaskInProgress() {
 	fmt.Println("Mark a task as in-progress or done")
+	// task-tracker mark-in-progress 1
+	args := os.Args
+	taskId := args[2]
+	taskIdInt, err := strconv.Atoi(taskId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(args) != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker mark-in-progress 1)")
+		fmt.Printf("Mark task as %v\n", InProgress)
+		return
+	}
+
+	var defaultTaskJson DefaultFileStruct
+	fsys := os.DirFS(".")
+	fileContent, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = json.Unmarshal(fileContent, &defaultTaskJson)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for index, _ := range defaultTaskJson.Tasks {
+		if defaultTaskJson.Tasks[index].Id == taskIdInt {
+			defaultTaskJson.Tasks[index].Status = InProgress
+		}
+	}
+
+	updatedTasks, err := json.Marshal(defaultTaskJson)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.WriteFile(filePath, updatedTasks, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Task with id of %v has been marked as %v \n", taskIdInt, InProgress)
 }
 func markTaskDone() {
 	fmt.Println("Mark a task as in-progress or done")
+	// task-tracker mark-done 1
+
+	args := os.Args
+
+	if len(args) != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker mark-done 1)")
+		fmt.Printf("Mark task as %v\n", Done)
+		return
+	}
+
+	taskId := args[2]
+	taskIdInt, err := strconv.Atoi(taskId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var fileDefault DefaultFileStruct
+	fsys := os.DirFS(".")
+	fileContent, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = json.Unmarshal(fileContent, &fileDefault)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for index, _ := range fileDefault.Tasks {
+		if fileDefault.Tasks[index].Id == taskIdInt {
+			fileDefault.Tasks[index].Status = Done
+		}
+	}
+	updatedContent, err := json.Marshal(fileDefault)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.WriteFile(filePath, updatedContent, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Task with id of %v has been marked as %v\n", taskId, Done)
 }
 func listDoneTasks() {
 	args := os.Args
@@ -510,12 +636,8 @@ func listInprogressTasks() {
 
 func help() {
 	fmt.Println("List of Commands")
+	checkVersion()
 	for key, value := range commands {
 		fmt.Printf("%v: %v \n", key, value)
 	}
-
-	// # Marking a task as in progress or done
-	// task-cli mark-in-progress 1
-	// task-cli mark-done 1
-
 }
