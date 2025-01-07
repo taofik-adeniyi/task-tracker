@@ -219,8 +219,9 @@ func addTask() {
 		fmt.Println("error converting reader file to the default struct", err.Error())
 	}
 	fmt.Println("before file content struct", fileContent)
+	taskId := len(fileContent.Tasks) + 1
 	newTask := Task{
-		Id:          len(fileContent.Tasks) + 1,
+		Id:          taskId,
 		Description: taskDescription,
 		Status:      Todo,
 		CreatedAt:   time.Now(),
@@ -248,7 +249,7 @@ func addTask() {
 		return
 	}
 
-	fmt.Println("Struct saved to file as JSON successfully!")
+	fmt.Printf("Task added successfully (ID: %v)\n", taskId)
 
 }
 func updateTask() {
@@ -438,10 +439,73 @@ func listDoneTasks() {
 	}
 }
 func listTodoTasks() {
+
+	args := os.Args
+	if len(args) != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker list todo)")
+		fmt.Printf("To list all tasks that it's status is %v\n", Todo)
+		return
+	}
+
+	var defaultFileStructure DefaultFileStruct
+	fsys := os.DirFS(".")
+	file_contents, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		fmt.Printf("Error reading %v, error is: %v", filePath, err.Error())
+		return
+	}
+	err = json.Unmarshal(file_contents, &defaultFileStructure)
+	if err != nil {
+		fmt.Println("Error converting bytes to struct", err.Error())
+		return
+	}
+	var todoTasks []Task
+	for _, value := range defaultFileStructure.Tasks {
+		if value.Status == Todo {
+			todoTasks = append(todoTasks, value)
+		}
+	}
+
+	fmt.Printf("List of all %v tasks:\n", Todo)
+	for _, value := range todoTasks {
+		value.taskInfo()
+	}
 	fmt.Println("list all tasks marked as todo")
 }
 func listInprogressTasks() {
-	fmt.Println("list all tasks marked as in progress")
+	fmt.Println("list all tasks marked as in-progress")
+
+	args := os.Args
+	if len(args) != 3 {
+		fmt.Printf("Incorrect command %v\n", args[0:])
+		fmt.Printf("The correct command should look like (task-tracker list in-progress)")
+		fmt.Printf("To list all tasks that it's status is %v\n", InProgress)
+		return
+	}
+
+	var defaultFileStructure DefaultFileStruct
+	fsys := os.DirFS(".")
+	file_contents, err := fs.ReadFile(fsys, filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = json.Unmarshal(file_contents, &defaultFileStructure)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var inProgressTasks []Task
+	for _, value := range defaultFileStructure.Tasks {
+		if value.Status == InProgress {
+			inProgressTasks = append(inProgressTasks, value)
+		}
+	}
+
+	for _, value := range inProgressTasks {
+		value.taskInfo()
+	}
+
 }
 
 func help() {
@@ -449,23 +513,9 @@ func help() {
 	for key, value := range commands {
 		fmt.Printf("%v: %v \n", key, value)
 	}
-	// 	# Adding a new task
-	// task-cli add "Buy groceries"
-	// # Output: Task added successfully (ID: 1)
-
-	// # Updating and deleting tasks
-	// task-cli update 1 "Buy groceries and cook dinner"
-	// task-cli delete 1
 
 	// # Marking a task as in progress or done
 	// task-cli mark-in-progress 1
 	// task-cli mark-done 1
 
-	// # Listing all tasks
-	// task-cli list
-
-	// # Listing tasks by status
-	// task-cli list done
-	// task-cli list todo
-	// task-cli list in-progress
 }
