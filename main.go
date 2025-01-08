@@ -76,21 +76,14 @@ var comamndsList []Commands = []Commands{
 		Command:     "list in-progress",
 		Description: "list in-progress",
 	},
-}
-
-// Define a map of commands to their corresponding functions
-var commandMap map[string]func() = map[string]func(){
-	"add":              addTask,
-	"update":           updateTask,
-	"delete":           deleteTask,
-	"mark-in-progress": markTaskInProgress,
-	"mark-done":        markTaskDone,
-	"list":             listTasks,
-	"list done":        listDoneTasks,
-	"list in-progress": listInprogressTasks,
-	"list todo":        listTodoTasks,
-	"-V":               checkVersion,
-	"--version":        checkVersion,
+	{
+		Command:     "-V",
+		Description: "list -V",
+	},
+	{
+		Command:     "--version",
+		Description: "list --version",
+	},
 }
 
 type Task struct {
@@ -115,8 +108,12 @@ func (t Task) taskInfo() {
 	fmt.Printf("Task Updated on: %v \n", t.CreatedAt.Format("2006-01-02 15:04:05"))
 }
 
-func checkVersion() {
-	fmt.Println(Version)
+func checkVersion() string {
+	version := "task-tracker@" + Version
+	return version
+}
+func displayVersion() {
+	fmt.Println("task-tracker@" + Version)
 }
 
 func main() {
@@ -127,15 +124,14 @@ func main() {
 		return
 	}
 
-	res := os.Args
-	fmt.Println("Welcome to Task Tracker")
+	res := userInputs()
+	fmt.Println("")
 	if len(res) < 2 {
 		help()
 		return
 	}
 	commandsLists := res[1:]
 	command := strings.Join(commandsLists, " ")
-	fmt.Println("the command passed is: ", command)
 	commandCheck(command)
 }
 
@@ -160,6 +156,10 @@ func commandCheck(command string) {
 		listTasks()
 	} else if strings.Contains(command, "help") {
 		help()
+	} else if strings.Contains(command, "-V") {
+		displayVersion()
+	} else if strings.Contains(command, "--version") {
+		displayVersion()
 	} else {
 		help()
 	}
@@ -199,7 +199,6 @@ func createFileIfNotExist() (*os.File, error) {
 
 	} else {
 		defer osFile.Close()
-		fmt.Println("Name of default file", osFile.Name())
 		return osFile, nil
 	}
 	return osFile, nil
@@ -235,10 +234,6 @@ func addTask() {
 		UpdatedAt:   time.Now(),
 	}
 	fileContent.Tasks = append(fileContent.Tasks, newTask)
-	defaultTask := fileContent.Tasks[0]
-	addedTask := fileContent.Tasks[1]
-	defaultTask.taskInfo()
-	addedTask.taskInfo()
 
 	jsonData, err := json.Marshal(fileContent)
 	if err != nil {
@@ -329,6 +324,9 @@ func deleteTask() {
 		if value.Id == taskIdInt {
 			continue
 		} else {
+			newFileContent.Tasks = append(newFileContent.Tasks, value)
+		}
+		if value.Id != taskIdInt {
 			newFileContent.Tasks = append(newFileContent.Tasks, value)
 		}
 	}
@@ -552,11 +550,10 @@ func listInprogressTasks() {
 }
 
 func help() {
-	fmt.Println("Commands Lists")
-	checkVersion()
-	for key, value := range commands {
-		fmt.Printf("%v: %v \n", key, value)
-	}
+	v := checkVersion()
+	fmt.Println("Available Commands for ", v)
+
+	fmt.Println("")
 	for key, value := range comamndsList {
 		fmt.Printf("%v: %v \n", key+1, value.Description)
 	}

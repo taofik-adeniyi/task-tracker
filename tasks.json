@@ -1,3 +1,11 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": 1,
+      "description": "beautiful dubinsky",
+      "status": "todo",
+      "created_at": "2025-01-08T12:21:01.433651+01:00",
+      "updated_at": "2025-01-08T12:21:01.433651+01:00"
+    }
+  ]
 }
