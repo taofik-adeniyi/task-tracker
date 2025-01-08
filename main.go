@@ -155,8 +155,9 @@ func commandCheck(command string) {
 	} else if strings.Contains(command, "list in-progress") {
 		listInprogressTasks()
 	} else if strings.Contains(command, "list") {
-		fmt.Println("it contains", command)
 		listTasks()
+	} else if strings.Contains(command, "help") {
+		help()
 	} else {
 		help()
 	}
