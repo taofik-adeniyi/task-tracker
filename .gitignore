@@ -24,3 +24,5 @@ go.work.sum
 # env file
 .env
 tasks.json
+task_tracker
+task_tracker.exe
