@@ -1,6 +1,4 @@
-# Project Overview
-
-## Project Name: Task-Tracker
+# Overview: Task-Tracker
 
 ## Brief Description
 
