@@ -4,6 +4,8 @@
 
 Task-Tracker is a command-line tool designed to help developers and CLI enthusiasts efficiently track their work progress. It encourages users to stay in the terminal interface, helping them manage current and future tasks without switching to a graphical interface.
 
+Project url: [https://roadmap.sh/projects/task-tracker](https://roadmap.sh/projects/task-tracker)
+
 ---
 
 ## Target Audience
