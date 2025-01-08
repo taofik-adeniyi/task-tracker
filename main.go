@@ -22,7 +22,6 @@ const (
 	Version    string     = "0.0.1"
 )
 
-// ValidateTaskStatus checks if a TaskStatus is valid
 func ValidateTaskStatus(status TaskStatus) error {
 	switch status {
 	case Todo, InProgress, Done:
@@ -37,8 +36,6 @@ type Commands struct {
 	Description string
 }
 
-var commands = []string{"add 'task'", "update", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
-var commandsDescription []string = []string{"add {{task description e.g 'Buy groceries'}}", "update {{ id, description  e.g 1, 'Buy groceries and cook dinner'}}", "delete", "mark-in-progress", "mark-done", "list", "list done", "list todo", "list in-progress"}
 var comamndsList []Commands = []Commands{
 	{
 		Command:     "add",
@@ -161,7 +158,7 @@ func commandCheck(command string) {
 	} else if strings.Contains(command, "--version") {
 		displayVersion()
 	} else {
-		help()
+		fmt.Printf("task-tracker: '%v' is not a task-tracker command. See 'task-tracker help'.\n", command)
 	}
 }
 
@@ -361,6 +358,11 @@ func listTasks() {
 		log.Fatal(err)
 	}
 
+	if len(tasks.Tasks) < 1 {
+		fmt.Println("No tasks added yet use the add command to add a task")
+		os.Exit(1)
+	}
+
 	fmt.Printf("List of tasks")
 	fmt.Println("")
 	for key, value := range tasks.Tasks {
@@ -473,11 +475,22 @@ func listDoneTasks() {
 		log.Fatal(err)
 		return
 	}
+	if len(tasksJson.Tasks) < 1 {
+		fmt.Println("No tasks added yet use the add command to add a task")
+		os.Exit(1)
+	}
+
 	var doneTasks []Task
+	var doneTasksCount int
 	for _, value := range tasksJson.Tasks {
 		if value.Status == Done {
+			doneTasksCount++
 			doneTasks = append(doneTasks, value)
 		}
+	}
+	if doneTasksCount < 1 {
+		fmt.Println("No task has been marked as done")
+		os.Exit(1)
 	}
 	fmt.Printf("List of all %v tasks:\n", Todo)
 	for _, value := range doneTasks {
@@ -504,11 +517,19 @@ func listTodoTasks() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	var todoTasks []Task
+	var todoTasksCount int
 	for _, value := range defaultFileStructure.Tasks {
 		if value.Status == Todo {
+			todoTasksCount++
 			todoTasks = append(todoTasks, value)
 		}
+	}
+
+	if todoTasksCount < 1 {
+		fmt.Println("No task marked as todo")
+		os.Exit(1)
 	}
 
 	fmt.Printf("List of all %v tasks:\n", Todo)
@@ -537,10 +558,16 @@ func listInprogressTasks() {
 	}
 
 	var inProgressTasks []Task
+	var inProgressCount int
 	for _, value := range defaultFileStructure.Tasks {
 		if value.Status == InProgress {
+			inProgressCount++
 			inProgressTasks = append(inProgressTasks, value)
 		}
+	}
+	if inProgressCount < 1 {
+		fmt.Println("No task has been marked as in-progress")
+		os.Exit(1)
 	}
 
 	for _, value := range inProgressTasks {
