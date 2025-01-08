@@ -101,9 +101,12 @@ type Task struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
+func userInputs() []string {
+	args := os.Args
+	return args
+}
+
 func (t Task) taskInfo() {
-	// fmt.Print
-	// fmt.Printf("%#v\n", t)
 
 	fmt.Printf("Task ID: %v \n", t.Id)
 	fmt.Printf("Task Description: %v \n", t.Description)
@@ -117,6 +120,13 @@ func checkVersion() {
 }
 
 func main() {
+
+	_, err := createFileIfNotExist()
+	if err != nil {
+		fmt.Println("err check", err.Error())
+		return
+	}
+
 	res := os.Args
 	fmt.Println("Welcome to Task Tracker")
 	if len(res) < 2 {
@@ -130,14 +140,6 @@ func main() {
 }
 
 func commandCheck(command string) {
-
-	// fn, exists := commandMap[command]
-	// if exists {
-	// 	fn()
-	// } else {
-	// 	help()
-	// }
-
 	if strings.Contains(command, "add") {
 		addTask()
 	} else if strings.Contains(command, "update") {
@@ -160,27 +162,6 @@ func commandCheck(command string) {
 		help()
 	} else {
 		help()
-	}
-}
-
-func checkIfJsonFileExists() (*os.File, error) {
-	osFile, err := os.Open(filePath)
-
-	if err != nil {
-		fmt.Printf("the file path is not available %s \n", err)
-		return nil, err
-	} else {
-		defer osFile.Close()
-		return osFile, nil
-	}
-}
-func createFile() (*os.File, error) {
-	osFile, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	} else {
-		defer osFile.Close()
-		return osFile, nil
 	}
 }
 
@@ -224,11 +205,7 @@ func createFileIfNotExist() (*os.File, error) {
 	return osFile, nil
 }
 func addTask() {
-	fmt.Println("Add Task ")
-	fmt.Println("e.g: task-tracker add 'Buy groceries'")
-	// task-cli add "Buy groceries"
-
-	args := os.Args
+	args := userInputs()
 	argsLen := len(args)
 	if argsLen != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
@@ -236,35 +213,19 @@ func addTask() {
 		return
 	}
 	taskDescription := args[2]
-	fmt.Println("task description", taskDescription)
-	//  checkIfJsonFileExists()
-	// createFile()
-	file, err := createFileIfNotExist()
-	if err != nil {
-		fmt.Println("err check", err.Error())
-		return
-	}
-	fmt.Println("check return file name", file.Name())
 
 	fsys := os.DirFS(".")
 
 	reader, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
-		// if err == io.EOF {
-		// 	fmt.Println("End of file", err.Error())
-		// 	return
-		// }
-		fmt.Println("error reading file", err.Error())
+		log.Fatal(err)
 		return
 	}
 	var fileContent DefaultFileStruct
-	// fmt.Println("file content from reader", reader)
-	fmt.Println("file content from reader", string(reader))
 	err = json.Unmarshal(reader, &fileContent)
 	if err != nil {
-		fmt.Println("error converting reader file to the default struct", err.Error())
+		log.Fatal(err)
 	}
-	fmt.Println("before file content struct", fileContent)
 	taskId := len(fileContent.Tasks) + 1
 	newTask := Task{
 		Id:          taskId,
@@ -273,38 +234,30 @@ func addTask() {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	// newTask.taskInfo()
 	fileContent.Tasks = append(fileContent.Tasks, newTask)
 	defaultTask := fileContent.Tasks[0]
 	addedTask := fileContent.Tasks[1]
-	fmt.Println("after file content struct>>")
 	defaultTask.taskInfo()
 	addedTask.taskInfo()
 
 	jsonData, err := json.Marshal(fileContent)
 	if err != nil {
-		fmt.Println("Error marshaling struct to JSON:", err)
-		return
+		log.Fatal(err)
 	}
-	// Print the JSON byte slice
-	fmt.Println("JSON data:", string(jsonData))
 	err = os.WriteFile(filePath, jsonData, 0644)
 
 	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
+		log.Fatal(err)
 	}
 
 	fmt.Printf("Task added successfully (ID: %v)\n", taskId)
 
 }
 func updateTask() {
-	fmt.Println("Update Task")
-	fmt.Println("e.g: task-tracker update 1 'Buy groceries and cook dinner'")
-	args := os.Args
+	args := userInputs()
 	if len(args) != 4 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
-		fmt.Printf("The correct command should look like (task-tracker update 1 'description to update to')")
+		fmt.Printf("The correct command should look like (task-tracker update 1 'description to update to task 2')")
 		return
 	}
 
@@ -312,20 +265,19 @@ func updateTask() {
 	taskDescription := args[3]
 	taskIdInt, err := strconv.Atoi(taskId)
 	if err != nil {
-		fmt.Println("Error converting string to int", err.Error())
+		log.Fatal(err)
 		return
 	}
 	var fileContent DefaultFileStruct
 	fsys := os.DirFS(".")
 	content, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
-		fmt.Println("err reading file", err.Error())
+		log.Fatal(err)
 		return
 	}
 	err = json.Unmarshal(content, &fileContent)
 	if err != nil {
-		fmt.Println("error turning bytes into struct", err.Error())
-		return
+		log.Fatal(err)
 	}
 
 	for i, _ := range fileContent.Tasks {
@@ -334,31 +286,25 @@ func updateTask() {
 			fileContent.Tasks[i].UpdatedAt = time.Now()
 		}
 	}
-	fmt.Println("file contents", fileContent)
 
 	conte, err := json.Marshal(fileContent)
 	if err != nil {
-		fmt.Println("err converting struct to bytes", err.Error())
+		log.Fatal(err)
 		return
 	}
 	err = os.WriteFile(filePath, conte, 0644)
 	if err != nil {
-		fmt.Println("Error writing to file", err.Error())
+		log.Fatal(err)
 	}
 }
 func deleteTask() {
-	// task-cli delete 1
-	fmt.Println("e.g: task-tracker delete 1")
-	fmt.Println("deleting task func")
-	args := os.Args
+	args := userInputs()
 	argsLen := len(args)
 	if argsLen != 3 {
-		fmt.Printf("Incorrect command %v\n", args[0:])
-		fmt.Printf("The correct command should look like (task-tracker delete 1)")
-		return
+		errMsg := fmt.Sprintf("Incorrect command %v\nThe correct command should look like (task-tracker delete 1)", args[0:])
+		log.Fatal(errMsg)
 	}
 
-	// command := args[1]
 	taskId := args[2]
 
 	taskIdInt, err := strconv.Atoi(taskId)
@@ -368,17 +314,14 @@ func deleteTask() {
 	}
 
 	fsfs := os.DirFS(".")
-	// file, err := os.Open(filePath)
 	content, err := fs.ReadFile(fsfs, filePath)
 	if err != nil {
-		fmt.Println("Unable to read file")
-		return
+		log.Fatal(err)
 	}
 	var fileContent DefaultFileStruct
 	err = json.Unmarshal(content, &fileContent)
 	if err != nil {
-		fmt.Println("Unable to parse the file content to struct", err.Error())
-		return
+		log.Fatal(err)
 	}
 
 	var newFileContent DefaultFileStruct
@@ -389,30 +332,23 @@ func deleteTask() {
 			newFileContent.Tasks = append(newFileContent.Tasks, value)
 		}
 	}
-	fmt.Println("newFileContent", newFileContent)
 
 	contentToSave, err := json.Marshal(newFileContent)
 	if err != nil {
-		fmt.Printf("Unable to marshall the struct %v \n, err: %v", newFileContent, err.Error())
+		log.Fatal(err)
 	}
 
 	err = os.WriteFile(filePath, contentToSave, 0644)
 	if err != nil {
-		fmt.Printf("unable to save file into %v, err: %v\n", filePath, err.Error())
-		return
+		log.Fatal(err)
 	}
-	// if command == "" || taskId == "" {
-	// 	fmt.Println("invalid command or no taskId")
-	// 	return
-	// }
 
-	fmt.Println("Delete tasks")
+	fmt.Printf("Task with id of %v deleted", taskId)
 }
 func listTasks() {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Error opening file", err.Error())
-		return
+		log.Fatal(err)
 	}
 	defer file.Close()
 
@@ -420,15 +356,14 @@ func listTasks() {
 	var tasks DefaultFileStruct
 	bytes, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
-		fmt.Printf("Error reading file: %v, error %v \n", filePath, err)
+		log.Fatal(err)
 	}
-	// fmt.Println(string(bytes))
 	err = json.Unmarshal(bytes, &tasks)
 	if err != nil {
-		fmt.Println("err converting bytes to struct", err.Error())
+		log.Fatal(err)
 	}
 
-	fmt.Println("List of tasks")
+	fmt.Printf("List of tasks")
 	fmt.Println("")
 	for key, value := range tasks.Tasks {
 		fmt.Printf("Task %v \n", key+1)
@@ -439,9 +374,7 @@ func listTasks() {
 	}
 }
 func markTaskInProgress() {
-	fmt.Println("Mark a task as in-progress or done")
-	// task-tracker mark-in-progress 1
-	args := os.Args
+	args := userInputs()
 	taskId := args[2]
 	taskIdInt, err := strconv.Atoi(taskId)
 	if err != nil {
@@ -450,7 +383,6 @@ func markTaskInProgress() {
 	if len(args) != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
 		fmt.Printf("The correct command should look like (task-tracker mark-in-progress 1)")
-		fmt.Printf("Mark task as %v\n", InProgress)
 		return
 	}
 
@@ -481,15 +413,11 @@ func markTaskInProgress() {
 	fmt.Printf("Task with id of %v has been marked as %v \n", taskIdInt, InProgress)
 }
 func markTaskDone() {
-	fmt.Println("Mark a task as in-progress or done")
-	// task-tracker mark-done 1
-
-	args := os.Args
+	args := userInputs()
 
 	if len(args) != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
 		fmt.Printf("The correct command should look like (task-tracker mark-done 1)")
-		fmt.Printf("Mark task as %v\n", Done)
 		return
 	}
 
@@ -526,27 +454,21 @@ func markTaskDone() {
 	fmt.Printf("Task with id of %v has been marked as %v\n", taskId, Done)
 }
 func listDoneTasks() {
-	args := os.Args
+	args := userInputs()
 
 	if len(args) != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
-		fmt.Printf("The correct command should look like (list done)")
+		fmt.Printf("The correct command should look like (task-tracker list done)")
 		return
 	}
-	fmt.Println("list all task marked as done")
 
 	var tasksJson DefaultFileStruct
-	fmt.Println(tasksJson)
-	// allTasks Defa
-
 	fsys := os.DirFS(".")
 	content, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	// fmt.Println(content)
-	// fmt.Println("after fatal")
 
 	err = json.Unmarshal(content, &tasksJson)
 	if err != nil {
@@ -567,11 +489,10 @@ func listDoneTasks() {
 }
 func listTodoTasks() {
 
-	args := os.Args
+	args := userInputs()
 	if len(args) != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
 		fmt.Printf("The correct command should look like (task-tracker list todo)")
-		fmt.Printf("To list all tasks that it's status is %v\n", Todo)
 		return
 	}
 
@@ -579,13 +500,11 @@ func listTodoTasks() {
 	fsys := os.DirFS(".")
 	file_contents, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
-		fmt.Printf("Error reading %v, error is: %v", filePath, err.Error())
-		return
+		log.Fatal(err)
 	}
 	err = json.Unmarshal(file_contents, &defaultFileStructure)
 	if err != nil {
-		fmt.Println("Error converting bytes to struct", err.Error())
-		return
+		log.Fatal(err)
 	}
 	var todoTasks []Task
 	for _, value := range defaultFileStructure.Tasks {
@@ -598,16 +517,13 @@ func listTodoTasks() {
 	for _, value := range todoTasks {
 		value.taskInfo()
 	}
-	fmt.Println("list all tasks marked as todo")
 }
 func listInprogressTasks() {
-	fmt.Println("list all tasks marked as in-progress")
 
-	args := os.Args
+	args := userInputs()
 	if len(args) != 3 {
 		fmt.Printf("Incorrect command %v\n", args[0:])
 		fmt.Printf("The correct command should look like (task-tracker list in-progress)")
-		fmt.Printf("To list all tasks that it's status is %v\n", InProgress)
 		return
 	}
 
@@ -636,9 +552,12 @@ func listInprogressTasks() {
 }
 
 func help() {
-	fmt.Println("List of Commands")
+	fmt.Println("Commands Lists")
 	checkVersion()
 	for key, value := range commands {
 		fmt.Printf("%v: %v \n", key, value)
+	}
+	for key, value := range comamndsList {
+		fmt.Printf("%v: %v \n", key+1, value.Description)
 	}
 }

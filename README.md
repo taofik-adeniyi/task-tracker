@@ -161,8 +161,3 @@ Task-Tracker is open-source software licensed under the GNU General Public Licen
 For questions, feedback, or support, feel free to reach out via email:
 
 - [bidemi64@gmail.com](mailto:bidemi64@gmail.com)
-
-GOOS=windows GOARCH=amd64 go build
-GOOS=linux GOARCH=amd64 go build
-GOOS=darwin GOARCH=amd64 go build // for building on other operating systems extra steps might be needed
-go build would build for the current operating system running the code
